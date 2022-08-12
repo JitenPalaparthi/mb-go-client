@@ -1,4 +1,4 @@
-module messagebroker
+module github.com/JitenPalaparthi/mb-go-client
 
 go 1.19
 
