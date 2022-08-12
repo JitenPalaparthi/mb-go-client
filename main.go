@@ -2,17 +2,20 @@ package main
 
 import (
 	"fmt"
-	"messagebroker/implementers/nats"
 	"runtime"
+
+	"github.com/JitenPalaparthi/mb-go-client/mbs/nats"
+	"github.com/JitenPalaparthi/mb-go-client/spec"
 )
 
 func main() {
-	mb := new(nats.MessageBroker)
+	mb := new(nats.BrokerConfig)
 	mb.Conn = "nats://localhost:4222"
-	mb.Subject = "demos.demo"
-	mb.Data = []byte("Hello Muruga")
+	//mb.Subject = "demos.demo"
+	//mb.Data = []byte("Hello Muruga")
 
-	if err := mb.Process(); err != nil {
+	msg := &spec.Message{Subject: "demos.demo", Data: []byte("Hello Murua")}
+	if err := mb.Publish(msg); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -26,7 +29,7 @@ func main() {
 		}
 	}
 	go func() {
-		mb.Subscribe(f)
+		mb.Subscribe(msg, f)
 	}()
 	runtime.Goexit()
 }
