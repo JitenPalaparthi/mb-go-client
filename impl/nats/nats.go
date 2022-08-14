@@ -1,4 +1,4 @@
-package impl
+package nats
 
 import (
 	"context"
@@ -7,13 +7,13 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-type MessageBroker struct {
+type MessageBroker[T []byte] struct {
 	Conn   any
 	Config any
 	Err    error
 }
 
-func (mb *MessageBroker) Publish(ctx context.Context, subject string, data []byte) spec.Messager {
+func (mb *MessageBroker[T]) Publish(ctx context.Context, subject string, data T) spec.Messager[T] {
 	nc, err := nats.Connect(mb.Conn.(string))
 	if err != nil {
 		mb.Err = err
@@ -28,7 +28,7 @@ func (mb *MessageBroker) Publish(ctx context.Context, subject string, data []byt
 	return mb
 }
 
-func (mb *MessageBroker) Subscribe(ctx context.Context, subject string, f func(data []byte)) spec.Messager {
+func (mb *MessageBroker[T]) Subscribe(ctx context.Context, subject string, f func(data T)) spec.Messager[T] {
 	nc, err := nats.Connect(mb.Conn.(string))
 	if err != nil {
 		mb.Err = err

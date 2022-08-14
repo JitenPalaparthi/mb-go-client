@@ -1,15 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 
-	"github.com/JitenPalaparthi/mb-go-client/impl"
+	"github.com/JitenPalaparthi/mb-go-client/impl/nats"
 	"github.com/JitenPalaparthi/mb-go-client/spec"
 )
 
 func main() {
-	mb := new(impl.MessageBroker)
+	mb := new(nats.MessageBroker[[]byte])
 	mb.Conn = "nats://localhost:4222"
 	//mb.Subject = "demos.demo"
 	//mb.Data = []byte("Hello Muruga")
@@ -32,17 +33,17 @@ func main() {
 	// 	mb.Subscribe(msg, f)
 	// }()
 
-	var ifc spec.Messager
+	var ifc spec.Messager[[]byte]
 
-	mb1 := new(impl.MessageBroker)
+	mb1 := new(nats.MessageBroker[[]byte])
 	mb1.Conn = "nats://localhost:4222"
 	//mb1.Subject="demos.demo1"
 	//mb1.Data=[]byte("Hello Muruga")
 	ifc = mb1
 
-	go ifc.Publish("demo.demo1", []byte("Hello Muruga")).Subscribe("demo.demo1", func(data []byte) {
+	go ifc.Publish(context.TODO(), "demo.demo1", []byte("Hello Muruga")).Subscribe(context.TODO(), "demo.demo1", func(data []byte) {
 		fmt.Println(string(data) + " You are the world-1")
-	}).Publish("demo.demo2", []byte("Hello Muruga -- again")).Subscribe("demo.demo2", func(data []byte) {
+	}).Publish(context.TODO(), "demo.demo2", []byte("Hello Muruga -- again")).Subscribe(context.TODO(), "demo.demo2", func(data []byte) {
 		fmt.Println(string(data) + " You are the world-2")
 	})
 	runtime.Goexit()
