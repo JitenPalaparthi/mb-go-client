@@ -2,7 +2,7 @@
 # mb-go-client
 
 ## Architecture 
-<img src="docs/mb-go-client-design.gif" width=400>
+<img src="docs/mb-go-client-design.gif" width=700 height=500>
 
 ## Spec
 - Every message broker component must implement   Messager interface.
