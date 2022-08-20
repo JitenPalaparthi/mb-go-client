@@ -5,8 +5,7 @@ import "context"
 type Message[T DataType] struct {
 	Subject string
 	Data    T
-	Config  interface{}
-	//ChErr   chan error
+	Config  any
 }
 
 // Messager is an interfer that implements two other interfaces which are Publisher and Subscriber
