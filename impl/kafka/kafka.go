@@ -2,8 +2,8 @@ package kafka
 
 import (
 	"context"
+	"errors"
 	"log"
-	"os"
 
 	"github.com/segmentio/kafka-go"
 
@@ -11,19 +11,26 @@ import (
 )
 
 type MessageBroker[T [][]byte] struct {
-	Conn   any // This is an array for kafka
+	Conn   []string // This is an array for kafka
 	Config any
-	ChErr  chan error
+	Err    error
+	Logger log.Logger
+}
+
+func New[T [][]byte](conn []string, config any, Logger log.Logger) (mb *MessageBroker[T], err error) {
+	if len(conn) < 1 {
+		return nil, errors.New("no brokers")
+	}
+	return &MessageBroker[T]{Conn: conn, Config: config, Logger: Logger}, nil
 }
 
 func (mb *MessageBroker[T]) Publish(ctx context.Context, message *spec.Message[T]) spec.Messager[T] {
-	l := log.New(os.Stdout, "kafka writer: ", 0)
 	// intialize the writer with the broker addresses, and the topic
 	w := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: mb.Conn.([]string),
+		Brokers: mb.Conn,
 		Topic:   message.Subject,
 		// assign the logger to the writer
-		Logger: l,
+		Logger: &mb.Logger,
 	})
 
 	err := w.WriteMessages(ctx, kafka.Message{
@@ -32,31 +39,24 @@ func (mb *MessageBroker[T]) Publish(ctx context.Context, message *spec.Message[T
 		Value: message.Data[1],
 	})
 	if err != nil {
-		if mb.ChErr == nil {
-			mb.ChErr = make(chan error)
-		}
-		mb.ChErr <- err
+		mb.Err = err
 		return mb
 	}
 	return mb
 }
 
 func (mb *MessageBroker[T]) Subscribe(ctx context.Context, message *spec.Message[T], f func(data T)) spec.Messager[T] {
-	l := log.New(os.Stdout, "kafka writer: ", 0)
 	// intialize the writer with the broker addresses, and the topic
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: mb.Conn.([]string),
+		Brokers: mb.Conn,
 		Topic:   message.Subject,
 		// assign the logger to the writer
-		Logger: l,
+		Logger: &mb.Logger,
 	})
 
 	msg, err := r.ReadMessage(ctx)
 	if err != nil {
-		if mb.ChErr == nil {
-			mb.ChErr = make(chan error)
-		}
-		mb.ChErr <- err
+		mb.Err = err
 		return mb
 	}
 	f([][]byte{msg.Key, msg.Value})
@@ -64,9 +64,6 @@ func (mb *MessageBroker[T]) Subscribe(ctx context.Context, message *spec.Message
 	return mb
 }
 
-func (mb *MessageBroker[T]) OnErr() <-chan error {
-	if mb.ChErr == nil {
-		mb.ChErr = make(chan error)
-	}
-	return mb.ChErr
+func (mb *MessageBroker[T]) Error() error {
+	return mb.Err
 }

@@ -2,69 +2,66 @@ package nats
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/JitenPalaparthi/mb-go-client/spec"
 	"github.com/nats-io/nats.go"
 )
 
 type MessageBroker[T []byte] struct {
-	Conn   any
+	Conn   string
 	Config any
-	ChErr  chan error
+	Err    error
+}
+
+func New[T []byte](conn string, config any) (mb *MessageBroker[T], err error) {
+	if conn == "" {
+		return nil, errors.New("no connections")
+	}
+	return &MessageBroker[T]{Conn: conn, Config: config}, nil
 }
 
 func (mb *MessageBroker[T]) Publish(ctx context.Context, message *spec.Message[T]) spec.Messager[T] {
 	if message == nil {
 		return nil
 	}
-	nc, err := nats.Connect(mb.Conn.(string))
+	if mb.Err != nil {
+		return mb
+	}
+	nc, err := nats.Connect(mb.Conn)
 	if err != nil {
-		if mb.ChErr == nil {
-			mb.ChErr = make(chan error)
-		}
-
-		mb.ChErr <- err
-		fmt.Println(err)
+		mb.Err = err
 		return mb
 	}
 	defer nc.Close()
 
 	if err := nc.Publish(message.Subject, message.Data); err != nil {
-		if mb.ChErr == nil {
-			mb.ChErr = make(chan error)
-		}
-		mb.ChErr <- err
+		mb.Err = err
 		return mb
 	}
 	return mb
 }
 
 func (mb *MessageBroker[T]) Subscribe(ctx context.Context, message *spec.Message[T], f func(data T)) spec.Messager[T] {
-	nc, err := nats.Connect(mb.Conn.(string))
+	if mb.Err != nil {
+		return mb
+	}
+	nc, err := nats.Connect(mb.Conn)
 	if err != nil {
-		if mb.ChErr == nil {
-			mb.ChErr = make(chan error)
-		}
-		mb.ChErr <- err
+		mb.Err = err
 		return mb
 	}
 	_, err = nc.Subscribe(message.Subject, func(m *nats.Msg) {
 		if err != nil {
-			if mb.ChErr == nil {
-				mb.ChErr = make(chan error)
-			}
-			mb.ChErr <- err
+			mb.Err = err
 			return
 		}
 		f(m.Data)
+		m.Sub.Unsubscribe()
 	})
 	return mb
 }
 
-func (mb *MessageBroker[T]) OnErr() <-chan error {
-	if mb.ChErr == nil {
-		mb.ChErr = make(chan error)
-	}
-	return mb.ChErr
+func (mb *MessageBroker[T]) Error() error {
+	return mb.Err
 }

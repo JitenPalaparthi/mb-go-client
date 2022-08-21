@@ -19,7 +19,9 @@ func main() {
 	if messager, err = nats.New[[]byte]("nats://localhost:4222", nil); err != nil {
 		fmt.Println(err)
 	} else {
-		err = messager.Publish(context.TODO(), &spec.Message[[]byte]{Subject: "demo.demo1", Data: []byte("Hello World! for publish only")}).Error()
+		err = messager.Subscribe(context.TODO(), &spec.Message[[]byte]{Subject: "demo.demo1"}, func(data []byte) {
+			fmt.Println("subscribe:", string(data))
+		}).Error()
 		if err != nil {
 			fmt.Println(err)
 		}

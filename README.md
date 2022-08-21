@@ -35,10 +35,10 @@ Messager interface consists of three interfaces; Publisher and Subscriber and Er
     - Returns:
         Messager:  the return type is messager interface itself. This helps to Publish and Subscribe as chain of events.
 
-3. Error : Error is used to dispatch all errors in Publish and Subscribe methods. The implementer must implement chan based error messages [Any error must be sent to a channel].
+3. Error : Error is used to dispatch all errors in Publish and Subscribe methods. The implementer must implement this method.
     - Function Signature:
-        OnErr() <- chan error
+        Error() error
     - Input:
         N/A
     - Returns:
-        <- chan error: It returns a chan or type error. chan must not be nil , that means implementer must send errors to  chan error and that chan error to be returned through this method.
+        error: If there is any error in the propagation of methods, the error is set and retruns using this method.
